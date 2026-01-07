@@ -6,7 +6,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 
-import opik
 from opik.integrations.langchain import OpikTracer
 
 from meta_agent_v2.knowledge import (
