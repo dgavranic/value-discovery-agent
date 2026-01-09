@@ -15,8 +15,10 @@ from meta_agent_v3.nodes import (
     action_planning_node,
     assess_action_planning_completion,
     summary_feedback_node,
+    preprocessor_node,
 )
 from meta_agent_v3.router import (
+    preprocessor_routing,
     route_after_introduction,
     route_after_rapport,
     route_after_value_discovery,
@@ -44,6 +46,8 @@ def create_graph():
     # Initialize workflow
     workflow = StateGraph(MetaAgentState)
 
+    workflow.add_node("preprocessor", preprocessor_node)
+
     # Add nodes for each stage
     workflow.add_node("introduction", introduction_node)
     workflow.add_node("rapport_building", rapport_building_node)
@@ -58,7 +62,21 @@ def create_graph():
     workflow.add_node("finalize", _finalize_session)
 
     # Set entry point
-    workflow.set_entry_point("introduction")
+    workflow.set_entry_point("preprocessor")
+
+    workflow.add_conditional_edges(
+        "preprocessor",
+        preprocessor_routing,
+        {
+            "introduction": "introduction",
+            "rapport_building": "rapport_building",
+            "value_discovery": "value_discovery",
+            "value_ranking": "value_ranking",
+            "action_planning": "action_planning",
+            "summary_feedback": "summary_feedback",
+            END: END,
+        }
+    )
 
     # === STAGE 0: INTRODUCTION ===
     workflow.add_conditional_edges(

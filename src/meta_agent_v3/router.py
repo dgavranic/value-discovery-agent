@@ -8,6 +8,22 @@ from langgraph.graph import END
 from meta_agent_v3.state import MetaAgentState
 
 
+def preprocessor_routing(state: MetaAgentState):
+    if state.stage == 0:
+        return "introduction"
+    elif state.stage == 1:
+        return "rapport_building"
+    elif state.stage == 2:
+        return "value_discovery"
+    elif state.stage == 3:
+        return "value_ranking"
+    elif state.stage == 4:
+        return "action_planning"
+    elif state.stage == 5:
+        return "summary_feedback"
+    else:
+        return END
+
 def route_after_introduction(state: MetaAgentState) -> Literal["rapport_building"] | None:
     """Route after introduction - always go to rapport building.
 

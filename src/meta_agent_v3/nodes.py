@@ -39,6 +39,22 @@ from meta_agent_v3.utils import (
 )
 
 
+def preprocessor_node(state: MetaAgentState) -> dict:
+
+    if state.stage == 6:
+        return {"stage": 6}  # End state
+
+    # Check if there are any user messages and if there are,
+    # process them to update knowledge map
+    llm = get_llm(state.model_name, state.temperature)
+    user_message = get_last_user_message(state)
+    if user_message:
+        extracted = extract_knowledge(user_message, llm)
+        knowledge_update = update_knowledge_map(state, extracted)
+        return {
+            **knowledge_update
+        }
+
 # === STAGE 0: INTRODUCTION ===
 
 def introduction_node(state: MetaAgentState) -> dict:
