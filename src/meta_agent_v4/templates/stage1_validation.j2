@@ -1,0 +1,38 @@
+Assess whether we have sufficient information to move from RAPPORT BUILDING to VALUE DISCOVERY.
+
+Current Knowledge:
+{{ knowledge_context }}
+
+Recent conversation (last 6 turns):
+{{ conversation_history }}
+
+Turn count in this stage: {{ turn_count }}
+
+Completion criteria:
+✓ At least ONE concrete, specific goal identified (not vague)
+✓ Problem described with multiple details (obstacles, context, specifics)
+✓ User has shared enough context to explore values from
+✓ User seems ready to go deeper (not holding back significantly)
+
+Warning signs to continue:
+⚠ Goals are still vague or unclear
+⚠ User giving very short responses consistently
+⚠ Only surface-level information
+⚠ Seems to have more to share but needs encouragement
+
+User intent signals:
+- Getting repetitive or saying "that's it" = may want to move on
+- Shorter answers after being engaged = may be ready
+- Still elaborating meaningfully = continue this stage
+
+Force advancement conditions:
+- If turn_count >= 8: Must advance (sufficient attempts)
+- If turn_count >= 5 AND at least 1 concrete goal: Should advance
+
+Return ONLY valid JSON:
+{
+  "should_advance": true/false,
+  "reasoning": "brief explanation",
+  "confidence": "low|medium|high",
+  "missing_elements": ["list what's still needed, if any"]
+}

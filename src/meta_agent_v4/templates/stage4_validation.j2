@@ -1,0 +1,20 @@
+Assess whether we should end the session.
+
+Turn count in this stage: {{ turn_count }}
+Has final feedback: {{ has_feedback }}
+
+Completion criteria:
+✓ Summary has been presented
+✓ User has provided feedback (positive, negative, or neutral)
+✓ User seems satisfied or ready to end
+
+End session if:
+- User provided any feedback (turn_count >= 1)
+- User said goodbye or indicated they're done
+- turn_count >= 2 (gave them chance to respond)
+
+Return ONLY valid JSON:
+{
+  "should_end": true/false,
+  "reasoning": "brief explanation"
+}

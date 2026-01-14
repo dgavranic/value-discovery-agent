@@ -1,0 +1,38 @@
+Assess whether we have sufficient value discovery to move to ACTION PLANNING.
+
+Current Knowledge:
+{{ knowledge_context }}
+
+Turn count in this stage: {{ turn_count }}
+Values discovered: {{ value_count }}
+
+Completion criteria:
+✓ At least 3-4 distinct values identified
+✓ Each value has supporting rationale/context
+✓ User has explored WHY these values matter (went deeper)
+✓ Some sense of prioritization or relative importance
+✓ Values feel authentic and grounded (not superficial)
+
+Warning signs to continue:
+⚠ Values are too vague or generic
+⚠ Haven't explored the "why" deeply enough
+⚠ No sense of which values are most important
+⚠ User is still discovering new insights
+
+User readiness signals:
+- Insights slowing down = may be ready
+- Confirmed their key values = ready
+- Asked "what's next" = ready
+- Still having "aha moments" = continue
+
+Force advancement conditions:
+- If turn_count >= 10: Must advance
+- If turn_count >= 6 AND value_count >= 3: Should advance
+
+Return ONLY valid JSON:
+{
+  "should_advance": true/false,
+  "reasoning": "brief explanation",
+  "confidence": "low|medium|high",
+  "values_quality": "superficial|developing|deep"
+}

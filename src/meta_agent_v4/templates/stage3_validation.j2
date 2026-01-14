@@ -1,0 +1,38 @@
+Assess whether we have a complete action plan to move to SUMMARY.
+
+Current Knowledge:
+{{ knowledge_context }}
+
+Turn count in this stage: {{ turn_count }}
+Actions suggested: {{ action_count }}
+
+Completion criteria:
+✓ At least 3 concrete, specific actions identified
+✓ Each action clearly links to user's values
+✓ User has provided feedback and preferences (A/B choices made)
+✓ Plan feels realistic and actionable to user
+✓ User has confirmed the plan resonates with them
+
+Warning signs to continue:
+⚠ Actions too vague or generic
+⚠ Poor value alignment
+⚠ User hasn't given meaningful feedback yet
+⚠ User expressing doubts or concerns about feasibility
+
+User confirmation signals:
+- Explicitly said plan looks good = ready
+- Discussing implementation details = ready
+- Asked "what's next" = ready
+- Still suggesting major changes = continue
+
+Force advancement conditions:
+- If turn_count >= 7: Must advance
+- If turn_count >= 4 AND action_count >= 3 AND user gave feedback: Should advance
+
+Return ONLY valid JSON:
+{
+  "should_advance": true/false,
+  "reasoning": "brief explanation",
+  "confidence": "low|medium|high",
+  "plan_quality": "weak|developing|strong"
+}
