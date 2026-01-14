@@ -88,6 +88,7 @@ class MetaAgentState:
 
     # User knowledge profile
     user_profile: UserProfile = field(default_factory=UserProfile)
+    last_extracted_knowledge: dict = field(default_factory=dict)
 
     # Final output
     final_summary: str = ""

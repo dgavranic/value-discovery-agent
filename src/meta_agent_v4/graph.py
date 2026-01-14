@@ -1,6 +1,7 @@
 """Main graph implementation with interrupt-based flow for natural conversation."""
 
 from langgraph.graph import StateGraph, END
+from opik.integrations.langchain import OpikTracer
 
 from meta_agent_v4.state import MetaAgentState
 from meta_agent_v4.nodes import (
@@ -10,14 +11,16 @@ from meta_agent_v4.nodes import (
     value_discovery_node,
     action_planning_node,
     summary_feedback_node,
+    reply_node,
+    validate_rapport_node,
+    validate_value_discovery_node,
+    validate_action_planning_node,
+    validate_summary_node,
 )
 from meta_agent_v4.router import (
     route_from_preprocessor,
-    route_after_introduction,
-    validate_rapport_building,
-    validate_value_discovery,
-    validate_action_planning,
-    validate_summary_feedback,
+    route_from_reply,
+    route_after_validate_summary,
 )
 from meta_agent_v4.opik_logger import log_final_feedback, log_error
 
@@ -45,9 +48,10 @@ def create_graph():
 
     Flow:
     - Preprocessor extracts knowledge from every user message
-    - Each stage node generates responses
-    - Validation routers decide if stage is complete (loop or advance)
-    - Interrupts before each stage allow natural conversation flow
+    - Each stage node generates responses and routes to REPLY node
+    - REPLY node uses interrupt_before to wait for user input
+    - After user responds, REPLY routes to appropriate validator
+    - Validator decides if stage is complete (loop or advance)
 
     Returns:
         Compiled StateGraph with interrupts enabled
@@ -61,6 +65,11 @@ def create_graph():
     workflow.add_node("value_discovery", value_discovery_node)
     workflow.add_node("action_planning", action_planning_node)
     workflow.add_node("summary_feedback", summary_feedback_node)
+    workflow.add_node("reply", reply_node)
+    workflow.add_node("validate_rapport", validate_rapport_node)
+    workflow.add_node("validate_value_discovery", validate_value_discovery_node)
+    workflow.add_node("validate_action_planning", validate_action_planning_node)
+    workflow.add_node("validate_summary", validate_summary_node)
     workflow.add_node("finalize", _finalize_session)
 
     # Set entry point
@@ -82,74 +91,77 @@ def create_graph():
 
     # === STAGE 0: INTRODUCTION ===
     # Introduction sends message and advances to rapport building
-    workflow.add_conditional_edges(
+    workflow.add_edge(
         "introduction",
-        route_after_introduction,
+        "__end__"
+    )
+
+    # === STAGE 1: RAPPORT BUILDING ===
+    # After generating response, go to REPLY node
+    workflow.add_edge("rapport_building", "reply")
+
+    # === STAGE 2: VALUE DISCOVERY ===
+    # After generating response, go to REPLY node
+    workflow.add_edge("value_discovery", "reply")
+
+    # === STAGE 3: ACTION PLANNING ===
+    # After generating response, go to REPLY node
+    workflow.add_edge("action_planning", "reply")
+
+    # === STAGE 4: SUMMARY & FEEDBACK ===
+    # After generating response, go to REPLY node
+    workflow.add_edge("summary_feedback", "reply")
+
+    # === REPLY NODE ===
+    # REPLY routes to appropriate validator based on current stage
+    workflow.add_conditional_edges(
+        "reply",
+        route_from_reply,
         {
-            "rapport_building": "rapport_building",
+            "validate_rapport": "validate_rapport",
+            "validate_value_discovery": "validate_value_discovery",
+            "validate_action_planning": "validate_action_planning",
+            "validate_summary": "validate_summary",
             "__end__": END
         }
     )
 
-    # === STAGE 1: RAPPORT BUILDING ===
-    # After generating response, validate and decide to loop or advance
-    workflow.add_conditional_edges(
-        "rapport_building",
-        validate_rapport_building,
-        {
-            "rapport_building": "rapport_building",  # Loop: stay in stage
-            "value_discovery": "value_discovery"      # Advance: move to next
-        }
+    # === VALIDATOR NODES ===
+    # Each validator decides to loop back to stage or advance
+    workflow.add_edge(
+        "validate_rapport",
+        "preprocessor"
     )
 
-    # === STAGE 2: VALUE DISCOVERY ===
-    # After generating response, validate and decide to loop or advance
-    workflow.add_conditional_edges(
-        "value_discovery",
-        validate_value_discovery,
-        {
-            "value_discovery": "value_discovery",     # Loop: stay in stage
-            "action_planning": "action_planning"      # Advance: move to next
-        }
+    workflow.add_edge(
+        "validate_value_discovery",
+        "preprocessor"
     )
 
-    # === STAGE 3: ACTION PLANNING ===
-    # After generating response, validate and decide to loop or advance
-    workflow.add_conditional_edges(
-        "action_planning",
-        validate_action_planning,
-        {
-            "action_planning": "action_planning",     # Loop: stay in stage
-            "summary_feedback": "summary_feedback"    # Advance: move to next
-        }
+    workflow.add_edge(
+        "validate_action_planning",
+        "preprocessor"
     )
 
-    # === STAGE 4: SUMMARY & FEEDBACK ===
-    # After generating response, validate and decide to loop or end
     workflow.add_conditional_edges(
-        "summary_feedback",
-        validate_summary_feedback,
+        "validate_summary",
+        route_after_validate_summary,
         {
-            "summary_feedback": "summary_feedback",   # Loop: collect feedback
-            "__end__": "finalize"                     # End: session complete
+            "summary_feedback": "summary_feedback",
+            "finalize": "finalize"
         }
     )
 
     # === FINALIZATION ===
     workflow.add_edge("finalize", END)
 
-    # Compile with interrupts before each stage
-    # This allows user to control pace and creates natural conversation flow
-    return workflow.compile(
-        interrupt_before=[
-            "rapport_building",
-            "value_discovery",
-            "action_planning",
-            "summary_feedback"
-        ]
-    )
+    # Compile the graph with interrupt_before on the REPLY node
+    return workflow.compile()
 
+
+opik_tracer = OpikTracer(
+    project_name="vd-meta-agent-v4",
+)
 
 # Create the graph instance
-graph = create_graph()
-
+graph = create_graph().with_config({"callbacks": [opik_tracer]})
